@@ -1,0 +1,76 @@
+#!/bin/bash
+if [ $# != 1 ] | \
+   [ "$1" != "oneiric" -a "$1" != "precise" ]; then
+   echo "用法: sudo $0 (oneiric|precise)";
+   echo "例如: sudo $0 oneiric";
+   exit 1;
+fi
+if [ !$USER = "root" ]; then
+   echo "$0 must run by sudo";
+   exit 1;
+fi
+echo "设置 $1...";
+MIRRORS="http://mirror.lupaworld.com/ubuntu/ \
+http://mirrors.163.com/ubuntu/ \
+http://mirrors.sohu.com/ubuntu/ \
+http://mirrors.xmu.edu.cn/ubuntu/archive/ \
+http://mirrors.ustc.edu.cn/ubuntu/ \
+http://mirror.bjtu.edu.cn/ubuntu/ \
+http://ubuntu.srt.cn/ubuntu/ \
+http://ftp.sjtu.edu.cn/ubuntu/ \
+http://mirror.dlut.edu.cn/ubuntu/ \
+http://ubuntu.uestc.edu.cn/ubuntu/ \
+http://mirrors.ustc.edu.cn/ubuntu/ \
+http://mirror.lzu.edu.cn/ubuntu/ \
+"
+TIME="/usr/bin/time -o timer.txt -f %e";
+URL="dists/$1/main/binary-i386/Packages.gz";
+WGET="wget --cache=off -T 20 -t 1 -w 0 -O /dev/null"
+PAYTIME=1000;
+TEMPTIME=1000;
+SITE="http://cn.archive.ubuntu.com/ubuntu/";
+for mirror in $MIRRORS ; do
+   echo "测试 $mirror..."
+   TEMPTIME=`$TIME $WGET $mirror$URL`;
+   if [ "$?" = 0 ] ; then
+      TEMPTIME=`cat timer.txt`;
+      echo "wget $1 : $TEMPTIME   当前最快 : $PAYTIME";
+      TEMPTIME2=`echo "$PAYTIME > $TEMPTIME"|bc`;
+      if [ $TEMPTIME2 = 1 ] ; then
+         PAYTIME="$TEMPTIME";
+         SITE="$mirror";
+         echo -e "\033[37;41;1m设为最佳站点 ($PAYTIME): $SITE\033[0m"   
+      fi
+   fi
+   rm timer.txt;
+done
+echo "最快的站点 ($PAYTIME): $SITE";
+echo "备份源 sources.list."
+declare -i num;
+num=0;
+while [ -e /etc/apt/sources.list.$num ];do
+   num=$num+1;      
+done
+mv /etc/apt/sources.list /etc/apt/sources.list.$num
+COMP="main restricted universe multiverse";
+MAINSITE="http://archive.ubuntu.org.cn"
+
+echo "deb $SITE $1 $COMP" >> /etc/apt/sources.list
+echo "deb $SITE $1-security $COMP" >> /etc/apt/sources.list
+echo "deb $SITE $1-proposed $COMP" >> /etc/apt/sources.list
+echo "deb $SITE $1-updates $COMP" >> /etc/apt/sources.list
+echo "deb $SITE $1-backports $COMP" >> /etc/apt/sources.list
+
+echo "deb-src $SITE $1 $COMP" >> /etc/apt/sources.list
+echo "deb-src $SITE $1-security $COMP" >> /etc/apt/sources.list
+echo "deb-src $SITE $1-proposed $COMP" >> /etc/apt/sources.list
+echo "deb-src $SITE $1-updates $COMP" >> /etc/apt/sources.list
+echo "deb-src $SITE $1-backports $COMP" >> /etc/apt/sources.list
+
+echo "deb http://archive.canonical.com/ubuntu $1 partner" >> /etc/apt/sources.list
+echo "deb-src http://archive.canonical.com/ubuntu $1 partner" >> /etc/apt/sources.list
+echo "deb http://extras.ubuntu.com/ubuntu $1 main" >> /etc/apt/sources.list
+echo "deb-src http://extras.ubuntu.com/ubuntu $1 main" >> /etc/apt/sources.list
+
+echo "设置 sources.list 完成,运行 apt-get update 更新!";
+exit 0
