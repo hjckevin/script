@@ -1,0 +1,5 @@
+cp _vimrc ~/.vimrc
+cat << EOF >> ~/.bashrc
+export PS1="\[\e[32;1m\]\u@\h \[\e[36;1m\]\w$ \[\e[0;1m\]"
+EOF
+source ~/.bashrc
